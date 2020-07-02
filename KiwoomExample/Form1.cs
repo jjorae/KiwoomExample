@@ -13,11 +13,19 @@ namespace KiwoomExample
     public partial class Form1 : Form
     {
         private string SCREEN_NO_ACCOUNT_INFO = "1001";
+        private string SCREEN_NO_ORDER = "2001";
 
         private string REALTIME_NEW = "0";
         private string REALTIME_ADD = "1";
 
+        private int ORDER_TYPE_BUY = 1;
+        private int ORDER_TYPE_SELL = 2;
+        private string ORDER_HOGA_MARKET = "03";
+        private string ORDER_HOGA_LIIMIT = "00";
+
         private BindingList<Holding> holdings;
+        private BindingList<Order> orders;
+        private List<Stock> stocks;
 
         private LoginInfo loginInfo;
 
@@ -26,7 +34,10 @@ namespace KiwoomExample
             InitializeComponent();
 
             holdings = new BindingList<Holding>();
+            orders = new BindingList<Order>();
+            stocks = new List<Stock>();
             dataHolding.DataSource = holdings;
+            dataOrder.DataSource = orders;
         }
 
         //***********************************************************************************************************************
@@ -61,6 +72,53 @@ namespace KiwoomExample
             }
         }
 
+        private void textBox1_KeyUp(object sender, KeyEventArgs e)
+        {
+            TextBox textBox = (TextBox)sender;
+            if (e.KeyCode == Keys.Enter)
+            {
+                searchStock(textBox.Text);
+            }
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            searchStock(textBox1.Text);
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            if(numericUpDown1.Value < 1)
+            {
+                MessageBox.Show("수량을 입력하세요.");
+                return;
+            } else if(numericUpDown2.Value < 1)
+            {
+                MessageBox.Show("수량을 입력하세요.");
+                return;
+            }
+
+            Stock selectedStock = (Stock)comboBox1.SelectedItem;
+            order(ORDER_TYPE_BUY, selectedStock.stockNo, int.Parse(numericUpDown1.Value.ToString()), int.Parse(numericUpDown2.Value.ToString()), radioButton1.Checked ? ORDER_HOGA_LIIMIT : ORDER_HOGA_MARKET);
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            if (numericUpDown1.Value < 1)
+            {
+                MessageBox.Show("수량을 입력하세요.");
+                return;
+            }
+            else if (numericUpDown2.Value < 1)
+            {
+                MessageBox.Show("수량을 입력하세요.");
+                return;
+            }
+
+            Stock selectedStock = (Stock)comboBox1.SelectedItem;
+            order(ORDER_TYPE_SELL, selectedStock.stockNo, int.Parse(numericUpDown1.Value.ToString()), int.Parse(numericUpDown2.Value.ToString()), radioButton1.Checked ? ORDER_HOGA_LIIMIT : ORDER_HOGA_MARKET);
+        }
+
         //***********************************************************************************************************************
         // 공통 함수 선언부
         //***********************************************************************************************************************
@@ -91,54 +149,324 @@ namespace KiwoomExample
             }
         }
 
-        private long getBuyFee(long totalPrice)
+        private void getAllStocks()
         {
-            /**
-             * 모의 매수 수수료 : 매수총액*0.35%
-                실제 매수 수수료 : 매수총액*0.015%
-             */
-            double fee = 0;
-
-            if (loginInfo.getServerGubun == 0)
+            // 모든 종목 코드 가져와서 (null : 전체, 0 : 장내, 10 : 코스닥...등등)
+            string stockCodes = kiwoomApi.GetCodeListByMarket("0") + kiwoomApi.GetCodeListByMarket("10");
+            foreach (string code in stockCodes.Split(new string[] { ";" }, StringSplitOptions.RemoveEmptyEntries))
             {
-                // 모의투자
-                fee += totalPrice * 0.35;
-            } else
-            {
-                // 실투자
-                fee += totalPrice * 0.015;
+                Stock stock = new Stock(code, kiwoomApi.GetMasterCodeName(code));
+                
+                stocks.Add(stock);
             }
-
-            return long.Parse(Math.Ceiling(fee).ToString());
         }
 
-        private long getSellFee(long totalPrice)
+        private void searchStock(string searchStr)
         {
-            /**
-                모의 매도 수수료 : 매도총액*0.35%
-                모의 매도 세금: 매도총액*0.25%
-
-                실제 매도 수수료 : 매도총액*0.015%
-                실제 매도 세금: 매도총액*0.25%
-             */
-            double fee = 0;
-
-            if (loginInfo.getServerGubun == 0)
+            if (string.IsNullOrEmpty(textBox1.Text))
             {
-                // 모의투자
-                fee += totalPrice * 0.35;
-                fee += totalPrice * 0.25;
-            }
-            else
-            {
-                // 실투자
-                fee += totalPrice * 0.015;
-                fee += totalPrice * 0.25;
+                MessageBox.Show("검색하실 종목명이나 종목코드를 입력하세요.");
+                return;
             }
 
-            Console.WriteLine("fee : " + fee);
+            comboBox1.DataSource = stocks.FindAll(item => item.stockName.Contains(searchStr) || item.stockNo.Contains(searchStr));
+        }
 
-            return long.Parse(Math.Ceiling(fee).ToString());
+        private void updateHoldings()
+        {
+            string stockNo = kiwoomApi.GetChejanData(9001).Trim();
+            int qty = int.Parse(kiwoomApi.GetChejanData(930));
+            long buyPrice = long.Parse(kiwoomApi.GetChejanData(931));
+            long totalBuyPrice = long.Parse(kiwoomApi.GetChejanData(932));
+
+            Holding holding = holdings.SingleOrDefault(item => item.StockNo.Contains(stockNo));
+            if (holding != null)
+            {
+                if(qty == 0)
+                {
+                    holdings.Remove(holding);
+                } else
+                {
+                    holding.Qty = String.Format("{0:#,###0}", qty);
+                    holding.BuyPrice = String.Format("{0:#,###0}", buyPrice);
+                    holding.TotalBuyPrice = String.Format("{0:#,###0}", totalBuyPrice);
+                }
+            } else
+            {
+                //holdings.Add(new Holding())
+            }
+        }
+
+        private void updateOrders()
+        {
+            // 접수 : 주문번호,종목코드,주문상태,종목명,주문수량,주문가격,미체결수량,주문시간,화면번호
+            // 체결 : 주문번호,종목코드,주문상태,종목명,주문수량,주문가격,미체결수량,체결시간,체결번호,체결가,체결량,화면번호
+            string orderNo = kiwoomApi.GetChejanData(9203).Trim();
+            string stockNo = kiwoomApi.GetChejanData(9001).Trim();
+            string orderStatus = kiwoomApi.GetChejanData(913);
+            string stockName = kiwoomApi.GetChejanData(302).Trim();
+            int qty = int.Parse(kiwoomApi.GetChejanData(900));
+            long orderPrice = long.Parse(kiwoomApi.GetChejanData(901));
+            int unclosedQty = int.Parse(kiwoomApi.GetChejanData(902));
+
+            if(orderStatus.Equals("접수"))
+            {
+                // 접수
+                orders.Add(new Order(orderNo, stockNo, orderStatus, stockName, qty, orderPrice, unclosedQty));
+            } else
+            {
+                // 체결
+                Order order = orders.SingleOrDefault(item => item.OrderNo.Contains(orderNo));
+                if(order != null)
+                {
+                    if(unclosedQty == 0)
+                    {
+                        orders.Remove(order);
+                    } else
+                    {
+                        order.OrderStatus = orderStatus;
+                        order.UnclosedQty = String.Format("{0:#,###0}", unclosedQty);
+                    }
+                }
+            }
+        }
+
+        private string getChejanData(string fidList)
+        {
+            string result = "";
+
+            if (fidList.Contains("9201"))
+            {
+                result += " 계좌번호:" + kiwoomApi.GetChejanData(9201);
+            }
+
+            if (fidList.Contains("9203"))
+            {
+                result += " 주문번호:" + kiwoomApi.GetChejanData(9203);
+            }
+
+            if (fidList.Contains("9001"))
+            {
+                result += " 종목코드:" + kiwoomApi.GetChejanData(9001).Trim();
+            }
+
+            if (fidList.Contains("913"))
+            {
+                // 주문이 들어가면 : 주문, 체결되면 : 체결, 취소 확인 필요.
+                result += " 주문상태:" + kiwoomApi.GetChejanData(913);
+            }
+
+            if (fidList.Contains("302"))
+            {
+                result += " 종목명:" + kiwoomApi.GetChejanData(302);
+            }
+
+            if (fidList.Contains("900"))
+            {
+                result += " 주문수량:" + kiwoomApi.GetChejanData(900);
+            }
+
+            if (fidList.Contains("901"))
+            {
+                result += " 주문가격:" + kiwoomApi.GetChejanData(901);
+            }
+
+            if (fidList.Contains("902"))
+            {
+                result += " 미체결수량:" + kiwoomApi.GetChejanData(902);
+            }
+
+            if (fidList.Contains("903"))
+            {
+                result += " 체결누계금액:" + kiwoomApi.GetChejanData(903);
+            }
+
+            if (fidList.Contains("904"))
+            {
+                result += " 원주문번호:" + kiwoomApi.GetChejanData(904);
+            }
+
+            if (fidList.Contains("905"))
+            {
+                result += " 주문구분:" + kiwoomApi.GetChejanData(905);
+            }
+
+            if (fidList.Contains("906"))
+            {
+                result += " 매매구분:" + kiwoomApi.GetChejanData(906);
+            }
+
+            if (fidList.Contains("907"))
+            {
+                result += " 매도수구분:" + kiwoomApi.GetChejanData(907);
+            }
+
+            if (fidList.Contains("908"))
+            {
+                result += " 주문/체결시간:" + kiwoomApi.GetChejanData(908);
+            }
+
+            if (fidList.Contains("909"))
+            {
+                result += " 체결번호:" + kiwoomApi.GetChejanData(909);
+            }
+
+            if (fidList.Contains("910"))
+            {
+                result += " 체결가:" + kiwoomApi.GetChejanData(910);
+            }
+
+            if (fidList.Contains("911"))
+            {
+                result += " 체결량:" + kiwoomApi.GetChejanData(911);
+            }
+
+            if (fidList.Contains("10"))
+            {
+                result += " 현재가:" + kiwoomApi.GetChejanData(10);
+            }
+
+            if (fidList.Contains("27"))
+            {
+                result += " (최우선)매도호가:" + kiwoomApi.GetChejanData(27);
+            }
+
+            if (fidList.Contains("28"))
+            {
+                result += " (최우선)매수호가:" + kiwoomApi.GetChejanData(28);
+            }
+
+            if (fidList.Contains("914"))
+            {
+                result += " 단위체결가:" + kiwoomApi.GetChejanData(914);
+            }
+
+            if (fidList.Contains("915"))
+            {
+                result += " 단위체결량:" + kiwoomApi.GetChejanData(915);
+            }
+
+            if (fidList.Contains("919"))
+            {
+                result += " 거부사유:" + kiwoomApi.GetChejanData(919);
+            }
+
+            if (fidList.Contains("920"))
+            {
+                result += " 화면번호:" + kiwoomApi.GetChejanData(920);
+            }
+
+            if (fidList.Contains("917"))
+            {
+                result += " 신용구분:" + kiwoomApi.GetChejanData(917);
+            }
+
+            if (fidList.Contains("916"))
+            {
+                result += " 대출일:" + kiwoomApi.GetChejanData(916);
+            }
+
+            if (fidList.Contains("930"))
+            {
+                result += " 보유수량:" + kiwoomApi.GetChejanData(930);
+            }
+
+            if (fidList.Contains("931"))
+            {
+                result += " 매입단가:" + kiwoomApi.GetChejanData(931);
+            }
+
+            if (fidList.Contains("932"))
+            {
+                result += " 총매입가:" + kiwoomApi.GetChejanData(932);
+            }
+
+            if (fidList.Contains("933"))
+            {
+                result += " 주문가능수량:" + kiwoomApi.GetChejanData(933);
+            }
+
+            if (fidList.Contains("945"))
+            {
+                result += " 당일순매수수량:" + kiwoomApi.GetChejanData(945);
+            }
+
+            if (fidList.Contains("946"))
+            {
+                result += " 매도/매수구분:" + kiwoomApi.GetChejanData(946);
+            }
+
+            if (fidList.Contains("950"))
+            {
+                result += " 당일총매도손일:" + kiwoomApi.GetChejanData(950);
+            }
+
+            if (fidList.Contains("951"))
+            {
+                result += " 예수금:" + kiwoomApi.GetChejanData(951);
+            }
+
+            if (fidList.Contains("307"))
+            {
+                result += " 기준가:" + kiwoomApi.GetChejanData(307);
+            }
+
+            if (fidList.Contains("8019"))
+            {
+                result += " 손익율:" + kiwoomApi.GetChejanData(8019);
+            }
+
+            if (fidList.Contains("957"))
+            {
+                result += " 신용금액:" + kiwoomApi.GetChejanData(957);
+            }
+
+            if (fidList.Contains("958"))
+            {
+                result += " 신용이자:" + kiwoomApi.GetChejanData(958);
+            }
+
+            if (fidList.Contains("918"))
+            {
+                result += " 만기일:" + kiwoomApi.GetChejanData(918);
+            }
+
+            if (fidList.Contains("990"))
+            {
+                result += " 당일실현손익(유가):" + kiwoomApi.GetChejanData(990);
+            }
+
+            if (fidList.Contains("991"))
+            {
+                result += " 당일실현손익률(유가):" + kiwoomApi.GetChejanData(991);
+            }
+
+            if (fidList.Contains("992"))
+            {
+                result += " 당일실현손익(신용):" + kiwoomApi.GetChejanData(992);
+            }
+
+            if (fidList.Contains("993"))
+            {
+                result += " 당일실현손익률(신용):" + kiwoomApi.GetChejanData(993);
+            }
+
+            if (fidList.Contains("397"))
+            {
+                result += " 파생상품거래단위:" + kiwoomApi.GetChejanData(397);
+            }
+
+            if (fidList.Contains("305"))
+            {
+                result += " 상한가:" + kiwoomApi.GetChejanData(305);
+            }
+
+            if (fidList.Contains("306"))
+            {
+                result += " 하한가:" + kiwoomApi.GetChejanData(306);
+            }
+
+            return result;
         }
 
         //***********************************************************************************************************************
@@ -154,6 +482,16 @@ namespace KiwoomExample
             loginInfo.keyBsecgb = int.Parse(kiwoomApi.GetLoginInfo("KEY_BSECGB").Trim());
             loginInfo.firewSecgb = int.Parse(kiwoomApi.GetLoginInfo("FIREW_SECGB").Trim());
             loginInfo.getServerGubun = int.Parse(kiwoomApi.GetLoginInfo("GetServerGubun").Trim());
+        }
+
+        private void order(int orderType, string code, int qty, int price, string hoga)
+        {
+            int result = kiwoomApi.SendOrder("ORDER", SCREEN_NO_ORDER, getSeletedAccountNo(), orderType, code, qty, price, hoga, "");
+
+            if (result < 0)
+            {
+                Console.WriteLine("[ERROR] 주문 실패 " + result);
+            }
         }
 
         //***********************************************************************************************************************
@@ -207,7 +545,7 @@ namespace KiwoomExample
         private void trEstimatedAssets(AxKHOpenAPILib._DKHOpenAPIEvents_OnReceiveTrDataEvent e)
         {
             string estimatedAssets = kiwoomApi.GetCommData(e.sTrCode, e.sRQName, 0, "추정예탁자산").Trim();
-            labelEstimatedAssetsVal.Text = convertMoneyFormat(estimatedAssets) + "원";
+            //labelEstimatedAssetsVal.Text = convertMoneyFormat(estimatedAssets) + "원";
         }
 
         private void trAccountBalance(AxKHOpenAPILib._DKHOpenAPIEvents_OnReceiveTrDataEvent e)
@@ -264,6 +602,7 @@ namespace KiwoomExample
                 kiwoomApi.KOA_Functions("ShowAccountWindow", "");
 
                 // 로그인 완료 후 처리 로직
+                getAllStocks();
                 getLoginInfo();
                 initAccountList();
                 requestTrEstimatedAssets(); // 추정자산조회
@@ -273,7 +612,15 @@ namespace KiwoomExample
         private void kiwoomApi_OnReceiveTrData(object sender, AxKHOpenAPILib._DKHOpenAPIEvents_OnReceiveTrDataEvent e)
         {
             Console.WriteLine("RQName : " + e.sRQName);
-            this.GetType().GetMethod(e.sRQName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic).Invoke(this, new object[] { e });
+
+            try
+            {
+                this.GetType().GetMethod(e.sRQName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic).Invoke(this, new object[] { e });
+            }
+            catch(NullReferenceException ex)
+            {
+                Console.WriteLine("[ERROR] " + ex.Message);
+            }
         }
 
         private void kiwoomApi_OnReceiveRealData(object sender, AxKHOpenAPILib._DKHOpenAPIEvents_OnReceiveRealDataEvent e)
@@ -282,14 +629,8 @@ namespace KiwoomExample
             Holding holding = holdings.SingleOrDefault(item => item.StockNo.Contains(e.sRealKey));
             if(holding != null)
             {
-                //Console.WriteLine(kiwoomApi.GetCommRealData(e.sRealKey, 10).Trim().Replace("-", ""));
                 long currentPrice = long.Parse(kiwoomApi.GetCommRealData(e.sRealKey, 10).Trim().Replace("-", ""));
-                //long calFee = getSellFee(long.Parse(holding.TotalBuyPrice, System.Globalization.NumberStyles.AllowThousands)) + getBuyFee(long.Parse(holding.TotalBuyPrice, System.Globalization.NumberStyles.AllowThousands));
-                //long profit = (currentPrice - long.Parse(holding.BuyPrice, System.Globalization.NumberStyles.AllowThousands)) * long.Parse(holding.Qty, System.Globalization.NumberStyles.AllowThousands) - calFee;
-                //Console.WriteLine("CurrentPrice : " + currentPrice + ", BuyPrice : " + long.Parse(holding.BuyPrice, System.Globalization.NumberStyles.AllowThousands) + ", QTY : " + long.Parse(holding.Qty, System.Globalization.NumberStyles.AllowThousands) + ", Fee : " + calFee + ", Profit : " + holding.Profit + ", calProfit : " + ((currentPrice - long.Parse(holding.BuyPrice, System.Globalization.NumberStyles.AllowThousands) * long.Parse(holding.Qty, System.Globalization.NumberStyles.AllowThousands)) - calFee));
                 holding.CurrentPrice = String.Format("{0:#,###0}", currentPrice);
-                //holding.Profit = String.Format("{0:#,###0}", profit);
-                //holding.ProfitRate = String.Format("{0:f2}", long.Parse(holding.TotalBuyPrice, System.Globalization.NumberStyles.AllowThousands) / profit / 100);
             }
         }
 
@@ -308,5 +649,26 @@ namespace KiwoomExample
 
         }
 
+        private void kiwoomApi_OnReceiveChejanData(object sender, AxKHOpenAPILib._DKHOpenAPIEvents_OnReceiveChejanDataEvent e)
+        {
+            Console.WriteLine("[DEBUG] OnReceiveChejanData - " + (e.sGubun.Equals("0") ? "[체결]" : "[잔고]") + getChejanData(e.sFIdList));
+            /*
+            [DEBUG] OnReceiveChejanData - [체결] 계좌번호:8139380411 주문번호:0060353 종목코드:A021050 주문상태:접수 종목명:서원 주문수량:10 주문가격:4125 미체결수량:10 체결누계금액:0 원주문번호:0000000 주문구분:+매수 매매구분:보통 매도수구분:2 주문/체결시간:095744 체결번호: 체결가: 체결량: 현재가:+4130 (최우선)매도호가:+4130 (최우선)매수호가: 4125 단위체결가: 단위체결량: 거부사유:0 화면번호:2001
+            [DEBUG] OnReceiveChejanData - [체결] 계좌번호:8139380411 주문번호:0060353 종목코드:A021050 주문상태:체결 종목명:서원 주문수량:10 주문가격:4125 미체결수량:0 체결누계금액:41250 원주문번호:0000000 주문구분:+매수 매매구분:보통 매도수구분:2 주문/체결시간:095747 체결번호:204322 체결가:4125 체결량:10 현재가: 4125 (최우선)매도호가: 4125 (최우선)매수호가:-4120 단위체결가:4125 단위체결량:10 거부사유:0 화면번호:2001
+            [DEBUG] OnReceiveChejanData - [잔고] 계좌번호:8139380411 종목코드:A021050 종목명:서원 주문수량: 현재가: 4125 (최우선)매도호가: 4125 (최우선)매수호가:-4120 화면번호: 신용구분:00 대출일:00000000 보유수량:25 매입단가:4150 ?祺탔蹈?103750 주문가능수량:25 당일순매수수량:20 매도/매수구분:2 당일총매도손일:0 예수금:0 기준가:4125 손익율:0.00 신용금액:0 신용이자:0 만기일:00000000 당일실현손익(유가):0 당일실현손익률(유가):0.00 당일실현손익(신용):0 당일실현손익률(신용):0.00 상한가:+5360 하한가:-2890
+             */
+
+            if(e.sGubun.Equals("0"))
+            {
+                // 체결인 경우
+                updateOrders();
+            }
+            else
+            {
+                // 잔고인 경우에 실시간 잔고에 수량 등 반영
+                // 종목코드, 보유수량, 매입단가
+                updateHoldings();
+            }
+        }
     }
 }
