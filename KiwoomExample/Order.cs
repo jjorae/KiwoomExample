@@ -30,7 +30,7 @@ namespace KiwoomExample
         public string StockNo {
             get { return _stockNo; }
             set { 
-                _stockNo = value;
+                _stockNo = value.Trim().Replace("A", "");
                 this.NotifyPropertyChanged("StockNo");
             }
         }
@@ -98,9 +98,22 @@ namespace KiwoomExample
             }
         }
 
+        // 주문구분
+        private string _orderType;
+
+        public string OrderType
+        {
+            get { return _orderType; }
+            set
+            {
+                _orderType = value;
+                this.NotifyPropertyChanged("OrderType");
+            }
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public Order(string orderNo, string stockNo, string orderStatus, string stockName, int qty, long orderPrice, int unclosedQty)
+        public Order(string orderNo, string stockNo, string orderStatus, string stockName, int qty, long orderPrice, int unclosedQty, string orderType)
         {
             _orderNo = orderNo;
             _stockNo = stockNo;
@@ -109,6 +122,7 @@ namespace KiwoomExample
             _qty = qty;
             _orderPrice = orderPrice;
             _unclosedQty = unclosedQty;
+            _orderType = orderType;
         }
 
         private void NotifyPropertyChanged(string name)

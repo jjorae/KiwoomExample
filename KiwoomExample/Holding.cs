@@ -18,7 +18,7 @@ namespace KiwoomExample
         public string StockNo {
             get { return _stockNo; }
             set { 
-                _stockNo = value;
+                _stockNo = value.Trim().Replace("A","");
                 this.NotifyPropertyChanged("StockNo");
             }
         }
@@ -106,6 +106,17 @@ namespace KiwoomExample
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
+
+        public Holding(string stockNo, string stockName, long currentPrice, int qty, long buyPrice, long totalBuyPrice, int serverGubun)
+        {
+            _stockNo = stockNo;
+            _stockName = stockName;
+            _currentPrice = currentPrice;
+            _qty = qty;
+            _buyPrice = buyPrice;
+            _totalBuyPrice = totalBuyPrice;
+            _serverGubun = serverGubun;
+        }
 
         public Holding(string stockNo, string stockName, long currentPrice, int qty, long buyPrice, long totalBuyPrice, long profit, float profitRate, int serverGubun)
         {

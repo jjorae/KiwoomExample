@@ -5,6 +5,7 @@ using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -14,17 +15,22 @@ namespace KiwoomExample
     {
         private string SCREEN_NO_ACCOUNT_INFO = "1001";
         private string SCREEN_NO_ORDER = "2001";
+        private string SCREEN_NO_SEARCH_RESULT = "3001";
+        private string SCREEN_NO_CONDITION = "4001";
 
         private string REALTIME_NEW = "0";
         private string REALTIME_ADD = "1";
 
         private int ORDER_TYPE_BUY = 1;
         private int ORDER_TYPE_SELL = 2;
+        private int ORDER_TYPE_BUY_CANCEL = 3;
+        private int ORDER_TYPE_SELL_CANCEL = 3;
         private string ORDER_HOGA_MARKET = "03";
         private string ORDER_HOGA_LIIMIT = "00";
 
         private BindingList<Holding> holdings;
         private BindingList<Order> orders;
+        private BindingList<ConditionStock> conditionStocks;
         private List<Stock> stocks;
 
         private LoginInfo loginInfo;
@@ -35,9 +41,11 @@ namespace KiwoomExample
 
             holdings = new BindingList<Holding>();
             orders = new BindingList<Order>();
+            conditionStocks = new BindingList<ConditionStock>();
             stocks = new List<Stock>();
             dataHolding.DataSource = holdings;
             dataOrder.DataSource = orders;
+            dataGridView1.DataSource = conditionStocks;
         }
 
         //***********************************************************************************************************************
@@ -119,6 +127,97 @@ namespace KiwoomExample
             order(ORDER_TYPE_SELL, selectedStock.stockNo, int.Parse(numericUpDown1.Value.ToString()), int.Parse(numericUpDown2.Value.ToString()), radioButton1.Checked ? ORDER_HOGA_LIIMIT : ORDER_HOGA_MARKET);
         }
 
+        private void button5_Click(object sender, EventArgs e)
+        {
+            // 정정
+            string orderNo = textBox2.Text;
+            if (string.IsNullOrEmpty(orderNo))
+            {
+                MessageBox.Show("정정할 주문을 선택하세요.");
+                return;
+            }
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            // 취소
+            string orderNo = textBox2.Text;
+            if(string.IsNullOrEmpty(orderNo))
+            {
+                MessageBox.Show("취소할 주문을 선택하세요.");
+                return;
+            }
+
+            Order order = orders.SingleOrDefault(item => item.OrderNo.Equals(orderNo));
+
+            if(order != null)
+            {
+                cancelOrder(order.OrderType.Contains("매수") ? ORDER_TYPE_BUY_CANCEL : ORDER_TYPE_SELL_CANCEL, order.StockNo, orderNo);
+            }
+        }
+
+        private void dataOrder_DoubleClick(object sender, EventArgs e)
+        {
+            DataGridView view = (DataGridView)sender;
+
+            string orderNo = view.CurrentRow.Cells["OrderNo"].Value.ToString().Trim();
+            string stockNo = view.CurrentRow.Cells["StockNo"].Value.ToString().Trim();
+            string orderType = view.CurrentRow.Cells["OrderType"].Value.ToString().Trim();
+
+            textBox2.Text = orderNo;
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            // 종목 선택
+            numericUpDown1.Value = 1;
+            numericUpDown2.Value = 0;
+
+            Stock selectedStock = (Stock)comboBox1.SelectedItem;
+            requestTrBasicInformation(selectedStock.stockNo, SCREEN_NO_SEARCH_RESULT);
+        }
+
+        private void button6_Click(object sender, EventArgs e)
+        {
+            conditionStocks.Clear();
+
+            string[] condition = comboBox2.SelectedItem.ToString().Split('^');
+
+            int conditionNum = 0;
+
+            try
+            {
+                conditionNum = int.Parse(condition[0].TrimStart('0'));
+            }
+            catch (FormatException ex)
+            {
+                Console.WriteLine("conditionNum 기본값 사용 " + ex.Message);
+            }
+
+            if (kiwoomApi.SendCondition(SCREEN_NO_CONDITION, condition[1], conditionNum, 1) == 0)
+            {
+                Console.WriteLine("조건검색 요청 실패");
+            }
+        }
+
+        private void button7_Click(object sender, EventArgs e)
+        {
+            string[] condition = comboBox2.SelectedItem.ToString().Split('^');
+
+            int conditionNum = 0;
+
+            try
+            {
+                conditionNum = int.Parse(condition[0].TrimStart('0'));
+            }
+            catch (FormatException ex)
+            {
+                Console.WriteLine("conditionNum 기본값 사용 " + ex.Message);
+            }
+
+            stopSendCondition(SCREEN_NO_CONDITION, condition[1], conditionNum);
+        }
+
         //***********************************************************************************************************************
         // 공통 함수 선언부
         //***********************************************************************************************************************
@@ -174,7 +273,7 @@ namespace KiwoomExample
 
         private void updateHoldings()
         {
-            string stockNo = kiwoomApi.GetChejanData(9001).Trim();
+            string stockNo = kiwoomApi.GetChejanData(9001).Trim().Replace("A", "");
             int qty = int.Parse(kiwoomApi.GetChejanData(930));
             long buyPrice = long.Parse(kiwoomApi.GetChejanData(931));
             long totalBuyPrice = long.Parse(kiwoomApi.GetChejanData(932));
@@ -193,7 +292,11 @@ namespace KiwoomExample
                 }
             } else
             {
-                //holdings.Add(new Holding())
+                string stockName = kiwoomApi.GetChejanData(302).Trim();
+                long currentPrice = long.Parse(kiwoomApi.GetChejanData(10));
+                holdings.Add(new Holding(stockNo, stockName, currentPrice, qty, buyPrice, totalBuyPrice, loginInfo.getServerGubun));
+
+                requestRealtimeQuote(SCREEN_NO_ACCOUNT_INFO, stockNo, REALTIME_ADD);
             }
         }
 
@@ -202,25 +305,30 @@ namespace KiwoomExample
             // 접수 : 주문번호,종목코드,주문상태,종목명,주문수량,주문가격,미체결수량,주문시간,화면번호
             // 체결 : 주문번호,종목코드,주문상태,종목명,주문수량,주문가격,미체결수량,체결시간,체결번호,체결가,체결량,화면번호
             string orderNo = kiwoomApi.GetChejanData(9203).Trim();
-            string stockNo = kiwoomApi.GetChejanData(9001).Trim();
+            string stockNo = kiwoomApi.GetChejanData(9001).Trim().Replace("A", "");
             string orderStatus = kiwoomApi.GetChejanData(913);
             string stockName = kiwoomApi.GetChejanData(302).Trim();
             int qty = int.Parse(kiwoomApi.GetChejanData(900));
             long orderPrice = long.Parse(kiwoomApi.GetChejanData(901));
             int unclosedQty = int.Parse(kiwoomApi.GetChejanData(902));
+            string orderType = kiwoomApi.GetChejanData(905);
 
-            if(orderStatus.Equals("접수"))
+            if (orderStatus.Equals("접수"))
             {
                 // 접수
-                orders.Add(new Order(orderNo, stockNo, orderStatus, stockName, qty, orderPrice, unclosedQty));
+                orders.Add(new Order(orderNo, stockNo, orderStatus, stockName, qty, orderPrice, unclosedQty, orderType));
             } else
             {
                 // 체결
                 Order order = orders.SingleOrDefault(item => item.OrderNo.Contains(orderNo));
                 if(order != null)
                 {
-                    if(unclosedQty == 0)
+                    if (unclosedQty == 0)
                     {
+                        orders.Remove(order);
+                    } else if (orderType.Contains("취소"))
+                    {
+                        listBoxLog.Items.Add("주문번호 " + orderNo + " " + orderType);
                         orders.Remove(order);
                     } else
                     {
@@ -494,6 +602,30 @@ namespace KiwoomExample
             }
         }
 
+        private void cancelOrder(int orderType, string code, string orgOrderNo)
+        {
+            //주문취소(종목코드, 주문구분.Equals("매수") ? 3 : 4, 주문번호);
+            int result = kiwoomApi.SendOrder("ORDER", SCREEN_NO_ORDER, getSeletedAccountNo(), orderType, code, 0, 0, "", orgOrderNo);
+
+            if (result < 0)
+            {
+                Console.WriteLine("[ERROR] 주문 실패 " + result);
+            }
+        }
+
+        private void loadConditions()
+        {
+            if (kiwoomApi.GetConditionLoad() == 0)
+            {
+                Console.WriteLine("[ERROR] 조건검색 로딩 실패");
+            }
+        }
+
+        private void stopSendCondition(string scrNo, string conditionName, int conditionIdx)
+        {
+            kiwoomApi.SendConditionStop(scrNo, conditionName, conditionIdx);
+        }
+
         //***********************************************************************************************************************
         // 키움 OpenApi TR요청 선언부
         //***********************************************************************************************************************
@@ -531,12 +663,24 @@ namespace KiwoomExample
              * 15 : 거래량
              * 20 : 체결시간
              */
-            int ret = kiwoomApi.SetRealReg(scrNo, codeList, "9001;302;10;11;25;12;13;15;20", optType);
+            int ret = kiwoomApi.SetRealReg(scrNo, codeList, "9001;302;10;11;25;12;13;15;20;920", optType);
 
             if (ret < 0)
             {
                 listBoxLog.Items.Add("[ERROR] 실시간시세요청 실패 - " + codeList + " (CODE : " + ret + ")");
             }
+        }
+
+        private void removeRealtimeQuote(string scrNo, string codeList)
+        {
+            kiwoomApi.SetRealRemove(scrNo, codeList);
+        }
+
+        private void requestTrBasicInformation(string code, string scrNo)
+        {
+            kiwoomApi.SetInputValue("종목코드", code);
+
+            kiwoomApi.CommRqData("trBasicInformation", "opt10001", 0, scrNo);
         }
 
         //***********************************************************************************************************************
@@ -562,7 +706,7 @@ namespace KiwoomExample
 
             for (int i = 0; i < cnt; i++)
             {
-                string stockNo = kiwoomApi.GetCommData(e.sTrCode, e.sRQName, i, "종목번호").Trim();
+                string stockNo = kiwoomApi.GetCommData(e.sTrCode, e.sRQName, i, "종목번호").Trim().Replace("A", "");
                 string stockName = kiwoomApi.GetCommData(e.sTrCode, e.sRQName, i, "종목명").Trim();
                 long currentPrice = long.Parse(kiwoomApi.GetCommData(e.sTrCode, e.sRQName, i, "현재가").Trim());
                 int qty = int.Parse(kiwoomApi.GetCommData(e.sTrCode, e.sRQName, i, "보유수량").Trim());
@@ -580,6 +724,16 @@ namespace KiwoomExample
 
                 // 실시간 시세 요청
                 requestRealtimeQuote(SCREEN_NO_ACCOUNT_INFO, codeList, REALTIME_NEW);
+            }
+        }
+
+        private void trBasicInformation(AxKHOpenAPILib._DKHOpenAPIEvents_OnReceiveTrDataEvent e)
+        {
+            if(e.sScrNo.Equals(SCREEN_NO_SEARCH_RESULT))
+            {
+                long currentPrice = long.Parse(Regex.Replace(kiwoomApi.GetCommData(e.sTrCode, e.sRQName, 0, "현재가").Trim(), @"[^0-9]", ""));
+                Console.WriteLine("현재가 : " + currentPrice);
+                numericUpDown2.Value = currentPrice;
             }
         }
 
@@ -606,6 +760,7 @@ namespace KiwoomExample
                 getLoginInfo();
                 initAccountList();
                 requestTrEstimatedAssets(); // 추정자산조회
+                loadConditions(); // 조건검색 조회
             }
         }
 
@@ -625,28 +780,86 @@ namespace KiwoomExample
 
         private void kiwoomApi_OnReceiveRealData(object sender, AxKHOpenAPILib._DKHOpenAPIEvents_OnReceiveRealDataEvent e)
         {
+            //Console.WriteLine("[DEBUG] OnReceiveRealData - e.sRealKey : " + e.sRealKey + ", e.sRealType : " + e.sRealType + ", e.sRealData : " + e.sRealData);
             // 보유 종목에 있을 경우 값 업데이트
-            Holding holding = holdings.SingleOrDefault(item => item.StockNo.Contains(e.sRealKey));
-            if(holding != null)
+            string market = kiwoomApi.GetCommRealData(e.sRealKey, 290).Trim();
+
+            if (market.Equals("2"))
             {
-                long currentPrice = long.Parse(kiwoomApi.GetCommRealData(e.sRealKey, 10).Trim().Replace("-", ""));
-                holding.CurrentPrice = String.Format("{0:#,###0}", currentPrice);
+                Holding holding = holdings.SingleOrDefault(item => item.StockNo.Contains(e.sRealKey));
+                if (holding != null)
+                {
+                    long currentPrice = long.Parse(Regex.Replace(kiwoomApi.GetCommRealData(e.sRealKey, 10).Trim(), @"[^0-9]", ""));
+                    holding.CurrentPrice = String.Format("{0:#,###0}", currentPrice);
+                }
+
+                ConditionStock conditionStock = conditionStocks.SingleOrDefault(item => item.StockNo.Contains(e.sRealKey));
+                if(conditionStock != null)
+                {
+                    long currentPrice = long.Parse(Regex.Replace(kiwoomApi.GetCommRealData(e.sRealKey, 10).Trim(), @"[^0-9]", ""));
+                    conditionStock.CurrentPrice = String.Format("{0:#,###0}", currentPrice);
+
+                    float fluctuationRate = float.Parse(kiwoomApi.GetCommRealData(e.sRealKey, 12).Trim());
+                    conditionStock.FluctuationRate = String.Format("{0:f2}", fluctuationRate);
+                }
             }
         }
 
         private void kiwoomApi_OnReceiveConditionVer(object sender, AxKHOpenAPILib._DKHOpenAPIEvents_OnReceiveConditionVerEvent e)
         {
+            // 조건식 목록
+            Console.WriteLine("[DEBUG] OnReceiveConditionVer " + e.lRet + " " + e.sMsg);
+            if (e.lRet != 1) return;
 
+            comboBox2.Items.AddRange(kiwoomApi.GetConditionNameList().Split(new string[] { ";" }, StringSplitOptions.RemoveEmptyEntries));
         }
 
         private void kiwoomApi_OnReceiveTrCondition(object sender, AxKHOpenAPILib._DKHOpenAPIEvents_OnReceiveTrConditionEvent e)
         {
-
+            // 조건검색 요청으로 검색된 종목코드 리스트를 전달하는 이벤트. ';'로 구분
+            Console.WriteLine("[DEBUG] OnReceiveTrCondition " + e.sScrNo + " " + e.strCodeList);
+            int cnt = e.strCodeList.Trim().Split(new string[] { ";" }, StringSplitOptions.RemoveEmptyEntries).Length;
+            if (cnt > 0)
+            {
+                // 한번에 100 종목을 조회할 수 있는 코드
+                //axKHOpenAPI1.CommKwRqData(e.strCodeList.Remove(e.strCodeList.Length - 1), 0, cnt, 0, "조건검색종목", 화면번호_조건검색);
+            }
         }
 
         private void kiwoomApi_OnReceiveRealCondition(object sender, AxKHOpenAPILib._DKHOpenAPIEvents_OnReceiveRealConditionEvent e)
         {
+            // 실시간 조건검색 요청으로 종목 편입 확인 (type - I : 종목편입, D : 종목이탈)
+            if (e.strType.Equals("I"))
+            {
+                Console.WriteLine("조건검색 실시간 편입 [" + e.sTrCode + "]");
 
+                ConditionStock conditionStock = conditionStocks.SingleOrDefault(item => item.StockNo.Equals(e.sTrCode));
+
+                if(conditionStock != null)
+                {
+                    conditionStock.Status = "편입";
+                    conditionStock.upTransferCnt();
+                } else
+                {
+                    conditionStocks.Add(new ConditionStock(e.sTrCode, kiwoomApi.GetMasterCodeName(e.sTrCode)));
+                    requestRealtimeQuote(SCREEN_NO_CONDITION, e.sTrCode, conditionStocks.Count > 0 ? REALTIME_ADD : REALTIME_NEW);
+                }
+
+                // 실시간으로 여러 종목을 가져올 경우는 없는가? 확인이 필요할듯..
+
+            }
+            else if (e.strType.Equals("D"))
+            {
+                Console.WriteLine("조건검색 실시간 이탈 [" + e.sTrCode + "]");
+
+                ConditionStock conditionStock = conditionStocks.SingleOrDefault(item => item.StockNo.Equals(e.sTrCode));
+
+                if (conditionStock != null)
+                {
+                    conditionStock.Status = "이탈";
+                    removeRealtimeQuote(SCREEN_NO_CONDITION, e.sTrCode);
+                }
+            }
         }
 
         private void kiwoomApi_OnReceiveChejanData(object sender, AxKHOpenAPILib._DKHOpenAPIEvents_OnReceiveChejanDataEvent e)
@@ -670,5 +883,6 @@ namespace KiwoomExample
                 updateHoldings();
             }
         }
+
     }
 }

@@ -52,6 +52,7 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
+    <Compile Include="ConditionStock.cs" />
     <Compile Include="Order.cs" />
     <Compile Include="Holding.cs" />
     <Compile Include="KiwoomApi.cs" />

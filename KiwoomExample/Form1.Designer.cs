@@ -67,6 +67,16 @@
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
             this.dataOrder = new System.Windows.Forms.DataGridView();
+            this.textBox2 = new System.Windows.Forms.TextBox();
+            this.label9 = new System.Windows.Forms.Label();
+            this.button4 = new System.Windows.Forms.Button();
+            this.button5 = new System.Windows.Forms.Button();
+            this.groupBox5 = new System.Windows.Forms.GroupBox();
+            this.dataGridView1 = new System.Windows.Forms.DataGridView();
+            this.comboBox2 = new System.Windows.Forms.ComboBox();
+            this.label10 = new System.Windows.Forms.Label();
+            this.button6 = new System.Windows.Forms.Button();
+            this.button7 = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.kiwoomApi)).BeginInit();
             this.groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataHolding)).BeginInit();
@@ -76,6 +86,8 @@
             this.groupBox3.SuspendLayout();
             this.groupBox4.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataOrder)).BeginInit();
+            this.groupBox5.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             this.SuspendLayout();
             // 
             // btnLogin
@@ -109,9 +121,9 @@
             // 
             this.listBoxLog.FormattingEnabled = true;
             this.listBoxLog.ItemHeight = 18;
-            this.listBoxLog.Location = new System.Drawing.Point(12, 816);
+            this.listBoxLog.Location = new System.Drawing.Point(12, 924);
             this.listBoxLog.Name = "listBoxLog";
-            this.listBoxLog.Size = new System.Drawing.Size(980, 220);
+            this.listBoxLog.Size = new System.Drawing.Size(980, 112);
             this.listBoxLog.TabIndex = 2;
             // 
             // labelAccountList
@@ -336,15 +348,15 @@
             this.dataHolding.RowHeadersWidth = 62;
             this.dataHolding.RowTemplate.Height = 30;
             this.dataHolding.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-            this.dataHolding.Size = new System.Drawing.Size(934, 227);
+            this.dataHolding.Size = new System.Drawing.Size(934, 130);
             this.dataHolding.TabIndex = 15;
             // 
             // groupBox2
             // 
             this.groupBox2.Controls.Add(this.dataHolding);
-            this.groupBox2.Location = new System.Drawing.Point(12, 538);
+            this.groupBox2.Location = new System.Drawing.Point(12, 736);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(975, 272);
+            this.groupBox2.Size = new System.Drawing.Size(975, 182);
             this.groupBox2.TabIndex = 16;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "잔고";
@@ -356,6 +368,7 @@
             this.comboBox1.Name = "comboBox1";
             this.comboBox1.Size = new System.Drawing.Size(179, 26);
             this.comboBox1.TabIndex = 17;
+            this.comboBox1.SelectedIndexChanged += new System.EventHandler(this.comboBox1_SelectedIndexChanged);
             // 
             // textBox1
             // 
@@ -516,12 +529,123 @@
             this.dataOrder.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
             this.dataOrder.Size = new System.Drawing.Size(934, 133);
             this.dataOrder.TabIndex = 15;
+            this.dataOrder.DoubleClick += new System.EventHandler(this.dataOrder_DoubleClick);
+            // 
+            // textBox2
+            // 
+            this.textBox2.Location = new System.Drawing.Point(734, 43);
+            this.textBox2.Name = "textBox2";
+            this.textBox2.Size = new System.Drawing.Size(231, 28);
+            this.textBox2.TabIndex = 31;
+            // 
+            // label9
+            // 
+            this.label9.AutoSize = true;
+            this.label9.Location = new System.Drawing.Point(648, 46);
+            this.label9.Name = "label9";
+            this.label9.Size = new System.Drawing.Size(80, 18);
+            this.label9.TabIndex = 32;
+            this.label9.Text = "주문번호";
+            // 
+            // button4
+            // 
+            this.button4.Location = new System.Drawing.Point(807, 79);
+            this.button4.Name = "button4";
+            this.button4.Size = new System.Drawing.Size(158, 43);
+            this.button4.TabIndex = 33;
+            this.button4.Text = "취소";
+            this.button4.UseVisualStyleBackColor = true;
+            this.button4.Click += new System.EventHandler(this.button4_Click);
+            // 
+            // button5
+            // 
+            this.button5.Location = new System.Drawing.Point(651, 79);
+            this.button5.Name = "button5";
+            this.button5.Size = new System.Drawing.Size(150, 43);
+            this.button5.TabIndex = 34;
+            this.button5.Text = "정정";
+            this.button5.UseVisualStyleBackColor = true;
+            this.button5.Click += new System.EventHandler(this.button5_Click);
+            // 
+            // groupBox5
+            // 
+            this.groupBox5.Controls.Add(this.dataGridView1);
+            this.groupBox5.Location = new System.Drawing.Point(12, 528);
+            this.groupBox5.Name = "groupBox5";
+            this.groupBox5.Size = new System.Drawing.Size(975, 182);
+            this.groupBox5.TabIndex = 17;
+            this.groupBox5.TabStop = false;
+            this.groupBox5.Text = "조건검색결과";
+            // 
+            // dataGridView1
+            // 
+            this.dataGridView1.AllowUserToAddRows = false;
+            this.dataGridView1.AllowUserToDeleteRows = false;
+            this.dataGridView1.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this.dataGridView1.AutoSizeRowsMode = System.Windows.Forms.DataGridViewAutoSizeRowsMode.DisplayedCells;
+            this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dataGridView1.Location = new System.Drawing.Point(19, 27);
+            this.dataGridView1.MultiSelect = false;
+            this.dataGridView1.Name = "dataGridView1";
+            this.dataGridView1.ReadOnly = true;
+            this.dataGridView1.RowHeadersVisible = false;
+            this.dataGridView1.RowHeadersWidth = 62;
+            this.dataGridView1.RowTemplate.Height = 30;
+            this.dataGridView1.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
+            this.dataGridView1.Size = new System.Drawing.Size(934, 130);
+            this.dataGridView1.TabIndex = 15;
+            // 
+            // comboBox2
+            // 
+            this.comboBox2.FormattingEnabled = true;
+            this.comboBox2.Location = new System.Drawing.Point(651, 159);
+            this.comboBox2.Name = "comboBox2";
+            this.comboBox2.Size = new System.Drawing.Size(314, 26);
+            this.comboBox2.TabIndex = 35;
+            // 
+            // label10
+            // 
+            this.label10.AutoSize = true;
+            this.label10.Location = new System.Drawing.Point(648, 138);
+            this.label10.Name = "label10";
+            this.label10.Size = new System.Drawing.Size(122, 18);
+            this.label10.TabIndex = 36;
+            this.label10.Text = "조건검색 목록";
+            // 
+            // button6
+            // 
+            this.button6.Location = new System.Drawing.Point(651, 191);
+            this.button6.Name = "button6";
+            this.button6.Size = new System.Drawing.Size(314, 43);
+            this.button6.TabIndex = 37;
+            this.button6.Text = "검색";
+            this.button6.UseVisualStyleBackColor = true;
+            this.button6.Click += new System.EventHandler(this.button6_Click);
+            // 
+            // button7
+            // 
+            this.button7.Location = new System.Drawing.Point(651, 240);
+            this.button7.Name = "button7";
+            this.button7.Size = new System.Drawing.Size(314, 43);
+            this.button7.TabIndex = 38;
+            this.button7.Text = "중지";
+            this.button7.UseVisualStyleBackColor = true;
+            this.button7.Click += new System.EventHandler(this.button7_Click);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 18F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1004, 1055);
+            this.Controls.Add(this.button7);
+            this.Controls.Add(this.button6);
+            this.Controls.Add(this.label10);
+            this.Controls.Add(this.comboBox2);
+            this.Controls.Add(this.groupBox5);
+            this.Controls.Add(this.button5);
+            this.Controls.Add(this.button4);
+            this.Controls.Add(this.label9);
+            this.Controls.Add(this.textBox2);
             this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.groupBox2);
@@ -542,7 +666,10 @@
             this.groupBox3.PerformLayout();
             this.groupBox4.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.dataOrder)).EndInit();
+            this.groupBox5.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
 
@@ -586,6 +713,16 @@
         private System.Windows.Forms.GroupBox groupBox3;
         private System.Windows.Forms.GroupBox groupBox4;
         private System.Windows.Forms.DataGridView dataOrder;
+        private System.Windows.Forms.TextBox textBox2;
+        private System.Windows.Forms.Label label9;
+        private System.Windows.Forms.Button button4;
+        private System.Windows.Forms.Button button5;
+        private System.Windows.Forms.GroupBox groupBox5;
+        private System.Windows.Forms.DataGridView dataGridView1;
+        private System.Windows.Forms.ComboBox comboBox2;
+        private System.Windows.Forms.Label label10;
+        private System.Windows.Forms.Button button6;
+        private System.Windows.Forms.Button button7;
     }
 }
 
