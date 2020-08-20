@@ -1,0 +1,10 @@
+C:\Users\jjorae\source\repos\KiwoomExample\LimitOrderExample\bin\Debug\LimitOrderExample.exe.config
+C:\Users\jjorae\source\repos\KiwoomExample\LimitOrderExample\bin\Debug\LimitOrderExample.exe
+C:\Users\jjorae\source\repos\KiwoomExample\LimitOrderExample\bin\Debug\LimitOrderExample.pdb
+C:\Users\jjorae\source\repos\KiwoomExample\LimitOrderExample\obj\Debug\LimitOrderExample.csprojAssemblyReference.cache
+C:\Users\jjorae\source\repos\KiwoomExample\LimitOrderExample\obj\Debug\LimitOrderExample.Form1.resources
+C:\Users\jjorae\source\repos\KiwoomExample\LimitOrderExample\obj\Debug\LimitOrderExample.Properties.Resources.resources
+C:\Users\jjorae\source\repos\KiwoomExample\LimitOrderExample\obj\Debug\LimitOrderExample.csproj.GenerateResource.cache
+C:\Users\jjorae\source\repos\KiwoomExample\LimitOrderExample\obj\Debug\LimitOrderExample.csproj.CoreCompileInputs.cache
+C:\Users\jjorae\source\repos\KiwoomExample\LimitOrderExample\obj\Debug\LimitOrderExample.exe
+C:\Users\jjorae\source\repos\KiwoomExample\LimitOrderExample\obj\Debug\LimitOrderExample.pdb

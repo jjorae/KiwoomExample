@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace KiwoomExample
 {
     // 보유종목
-    class Holding : INotifyPropertyChanged
+    public class Holding : INotifyPropertyChanged
     {
         private int _serverGubun;
 

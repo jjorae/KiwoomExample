@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace KiwoomExample
 {
     // 보유종목
-    class Order : INotifyPropertyChanged
+    public class Order : INotifyPropertyChanged
     {
         // 주문번호,종목코드,주문상태,종목명,주문수량,주문가격,미체결수량
         // 종목번호

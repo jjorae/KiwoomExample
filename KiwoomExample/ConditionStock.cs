@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace KiwoomExample
 {
     // 보유종목
-    class ConditionStock : INotifyPropertyChanged
+    public class ConditionStock : INotifyPropertyChanged
     {
         // 종목코드,종목명,현재가,등락율,상태,편입횟수
         // 종목번호
@@ -32,6 +32,18 @@ namespace KiwoomExample
             {
                 _stockName = value;
                 this.NotifyPropertyChanged("StockName");
+            }
+        }
+
+        // 편입가
+        private long _transferPrice;
+        public string TransferPrice
+        {
+            get { return string.Format("{0:#,###0}", _transferPrice); }
+            set
+            {
+                _transferPrice = long.Parse(value, System.Globalization.NumberStyles.AllowThousands);
+                this.NotifyPropertyChanged("TransferPrice");
             }
         }
 
@@ -85,6 +97,19 @@ namespace KiwoomExample
             }
         }
 
+        // 주문여부
+        private bool _ordered;
+
+        public string Ordered
+        {
+            get { return _ordered?"주문":"대기"; }
+            set
+            {
+                _ordered = value.Equals("주문")?true:false;
+                this.NotifyPropertyChanged("Ordered");
+            }
+        }
+
         public void upTransferCnt()
         {
             _transferCnt += 1;
@@ -114,6 +139,17 @@ namespace KiwoomExample
         {
             _stockNo = stockNo;
             _stockName = stockName;
+            _currentPrice = currentPrice;
+            _fluctuationRate = fluctuationRate;
+            _status = status;
+            _transferCnt = transferCnt;
+        }
+
+        public ConditionStock(string stockNo, string stockName, long transferPrice, long currentPrice, float fluctuationRate, string status, int transferCnt)
+        {
+            _stockNo = stockNo;
+            _stockName = stockName;
+            _transferPrice = transferPrice;
             _currentPrice = currentPrice;
             _fluctuationRate = fluctuationRate;
             _status = status;

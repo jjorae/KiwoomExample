@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace KiwoomExample
 {
-    class Stock
+    public class Stock
     {
         public string stockNo { get; set; }
         public string stockName { get; set; }
