@@ -152,7 +152,7 @@ namespace FourCommaTrader
             }
         }
 
-        // 2차 매수가
+        // 3차 매수가
         private double _thirdBuyPrice;
         public string ThirdBuyPrice
         {
@@ -214,6 +214,25 @@ namespace FourCommaTrader
         // 수익률
         private float _profitRate;
         public string ProfitRate
+        {
+            get { return String.Format("{0:f2}", _profitRate); }
+            set
+            {
+                _profitRate = float.Parse(value);
+
+                if(_profitRate > 0 && _profitRate > _maxProfitRate)
+                {
+                    _maxProfitRate = _profitRate;
+                }
+
+                this.NotifyPropertyChanged("ProfitRate");
+                this.NotifyPropertyChanged("MaxProfitRate");
+            }
+        }
+
+        // 최고 수익률
+        private float _maxProfitRate;
+        public string MaxProfitRate
         {
             get { return String.Format("{0:f2}", _profitRate); }
             set

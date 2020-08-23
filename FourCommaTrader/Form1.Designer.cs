@@ -49,6 +49,8 @@
             this.kiwoomApi = new AxKHOpenAPILib.AxKHOpenAPI();
             this.comboAccount = new System.Windows.Forms.ComboBox();
             this.buttonStop = new System.Windows.Forms.Button();
+            this.buttonSaveLog = new System.Windows.Forms.Button();
+            this.button1 = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.dataDetectCondition)).BeginInit();
             this.groupBox5.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataOrder)).BeginInit();
@@ -307,11 +309,35 @@
             this.buttonStop.UseVisualStyleBackColor = true;
             this.buttonStop.Click += new System.EventHandler(this.buttonStop_Click);
             // 
+            // buttonSaveLog
+            // 
+            this.buttonSaveLog.Location = new System.Drawing.Point(953, 827);
+            this.buttonSaveLog.Margin = new System.Windows.Forms.Padding(4);
+            this.buttonSaveLog.Name = "buttonSaveLog";
+            this.buttonSaveLog.Size = new System.Drawing.Size(172, 39);
+            this.buttonSaveLog.TabIndex = 27;
+            this.buttonSaveLog.Text = "매매 로그 저장";
+            this.buttonSaveLog.UseVisualStyleBackColor = true;
+            this.buttonSaveLog.Click += new System.EventHandler(this.buttonSaveLog_Click);
+            // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(778, 827);
+            this.button1.Margin = new System.Windows.Forms.Padding(4);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(172, 39);
+            this.button1.TabIndex = 28;
+            this.button1.Text = "시스템 로그 저장";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 18F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1143, 836);
+            this.ClientSize = new System.Drawing.Size(1143, 880);
+            this.Controls.Add(this.button1);
+            this.Controls.Add(this.buttonSaveLog);
             this.Controls.Add(this.buttonStop);
             this.Controls.Add(this.comboAccount);
             this.Controls.Add(this.kiwoomApi);
@@ -367,6 +393,8 @@
         private AxKHOpenAPILib.AxKHOpenAPI kiwoomApi;
         private System.Windows.Forms.ComboBox comboAccount;
         private System.Windows.Forms.Button buttonStop;
+        private System.Windows.Forms.Button buttonSaveLog;
+        private System.Windows.Forms.Button button1;
     }
 }
 
