@@ -111,6 +111,26 @@ namespace FourCommaTrader
             }
         }
 
+        // 주문/체결시간
+        private string _orderTime;
+
+        public string OrderTime
+        {
+            get { return _orderTime; }
+            set
+            {
+                _orderTime = value;
+                this.NotifyPropertyChanged("OrderTime");
+            }
+        }
+
+        private int _afterOrder;
+
+        public int AfterOrder
+        {
+            get { return Convert.ToInt32(((DateTime.Now - DateTime.ParseExact(_orderTime, "HHmmss", null)).TotalSeconds)); }
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         public OrderStock(string orderNo, string stockNo, string orderStatus, string stockName, int qty, long orderPrice, int unclosedQty, string orderType)
@@ -123,6 +143,19 @@ namespace FourCommaTrader
             _orderPrice = orderPrice;
             _unclosedQty = unclosedQty;
             _orderType = orderType;
+        }
+
+        public OrderStock(string orderNo, string stockNo, string orderStatus, string stockName, int qty, long orderPrice, int unclosedQty, string orderType, string orderTime)
+        {
+            _orderNo = orderNo;
+            _stockNo = stockNo;
+            _orderStatus = orderStatus;
+            _stockName = stockName;
+            _qty = qty;
+            _orderPrice = orderPrice;
+            _unclosedQty = unclosedQty;
+            _orderType = orderType;
+            _orderTime = orderTime;
         }
 
         private void NotifyPropertyChanged(string name)
