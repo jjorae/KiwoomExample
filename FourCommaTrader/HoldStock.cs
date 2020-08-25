@@ -243,14 +243,14 @@ namespace FourCommaTrader
         }
 
         // 주문여부
-        private bool _ordered;
+        private string _ordered;
 
         public string Ordered
         {
-            get { return _ordered ? "주문" : "대기"; }
+            get { return _ordered; }
             set
             {
-                _ordered = value.Equals("주문") ? true : false;
+                _ordered = value;
                 this.NotifyPropertyChanged("Ordered");
             }
         }
