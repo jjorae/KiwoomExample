@@ -426,7 +426,7 @@ namespace FourCommaTrader
                         Console.WriteLine("익절 " + holding.StockName + " " + holding.ProfitRate);
                         order(ORDER_TYPE_SELL, holding.StockNo, int.Parse(holding.Qty, System.Globalization.NumberStyles.AllowThousands), int.Parse(currentPrice.ToString()), ORDER_HOGA_LIIMIT); // 시장가 손절
                     }*/
-                    Console.WriteLine(float.Parse(holding.ProfitRate));
+
                     if (!holding.Ordered.Equals("주문") && long.Parse(holding.TargetLine, System.Globalization.NumberStyles.AllowThousands) > 0 && long.Parse(holding.TargetLine, System.Globalization.NumberStyles.AllowThousands) < currentPrice)
                     {
                         log(LogMode.TRADE, holding.StockName + "(" + holding.StockNo + ") 종목이 익절가에 도달하여 익절 합니다. (" + float.Parse(holding.ProfitRate) + "%)");
@@ -536,6 +536,9 @@ namespace FourCommaTrader
             [DEBUG] OnReceiveChejanData - [체결] 계좌번호:8139380411 주문번호:0060353 종목코드:A021050 주문상태:체결 종목명:서원 주문수량:10 주문가격:4125 미체결수량:0 체결누계금액:41250 원주문번호:0000000 주문구분:+매수 매매구분:보통 매도수구분:2 주문/체결시간:095747 체결번호:204322 체결가:4125 체결량:10 현재가: 4125 (최우선)매도호가: 4125 (최우선)매수호가:-4120 단위체결가:4125 단위체결량:10 거부사유:0 화면번호:2001
             [DEBUG] OnReceiveChejanData - [잔고] 계좌번호:8139380411 종목코드:A021050 종목명:서원 주문수량: 현재가: 4125 (최우선)매도호가: 4125 (최우선)매수호가:-4120 화면번호: 신용구분:00 대출일:00000000 보유수량:25 매입단가:4150 ?祺탔蹈?103750 주문가능수량:25 당일순매수수량:20 매도/매수구분:2 당일총매도손일:0 예수금:0 기준가:4125 손익율:0.00 신용금액:0 신용이자:0 만기일:00000000 당일실현손익(유가):0 당일실현손익률(유가):0.00 당일실현손익(신용):0 당일실현손익률(신용):0.00 상한가:+5360 하한가:-2890
              */
+
+            // 선택한 계좌일 경우에만 추가
+            if (!kiwoomApi.GetChejanData(9201).Trim().Equals(getSeletedAccountNo())) return;
 
             if (e.sGubun.Equals("0"))
             {
