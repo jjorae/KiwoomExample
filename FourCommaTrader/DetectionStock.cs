@@ -134,6 +134,17 @@ namespace FourCommaTrader
             }
         }
 
+        private long _newTransferPrice;
+        public string NewTransferPrice
+        {
+            get { return string.Format("{0:#,###0}", _newTransferPrice); }
+            set
+            {
+                _newTransferPrice = long.Parse(value, System.Globalization.NumberStyles.AllowThousands);
+                this.NotifyPropertyChanged("NewTransferPrice");
+            }
+        }
+
         // 주문여부
         private string _ordered;
 
@@ -166,6 +177,19 @@ namespace FourCommaTrader
             get { return Convert.ToInt32(((DateTime.Now - DateTime.ParseExact(_detectionTime, "HHmmss", null)).TotalSeconds)); }
         }
 
+        // 최대 주문 초과 여부
+        private bool _isOvered;
+
+        public bool IsOvered
+        {
+            get { return _isOvered; }
+            set
+            {
+                _isOvered = value;
+                this.NotifyPropertyChanged("IsOvered");
+            }
+        }
+
         public void upTransferCnt()
         {
             _transferCnt += 1;
@@ -181,6 +205,17 @@ namespace FourCommaTrader
             _transferCnt = 1;
             _ordered = "대기";
             _detectionTime = DateTime.Now.ToString("HHmmss");
+        }
+
+        public DetectionStock(string stockNo, string stockName, bool isOvered)
+        {
+            _stockNo = stockNo;
+            _stockName = stockName;
+            _status = "편입";
+            _transferCnt = 1;
+            _ordered = "대기";
+            _detectionTime = DateTime.Now.ToString("HHmmss");
+            _isOvered = isOvered;
         }
 
         public DetectionStock(string stockNo, string stockName, long currentPrice, float fluctuationRate)

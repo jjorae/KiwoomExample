@@ -45,10 +45,11 @@ namespace FourCommaTrader
          종목 금액이랑 한 종목당 주문 금액 비교해서..
          가진 돈이랑 주문 금액 비교..
          */
-        private int oneTimeAmount = 20000;
+        private int oneTimeAmount = 10000;
         private int availableAmount = 0;
         private double lossCut = 10.0;
-
+        private int maxStock = 2;
+        private bool isRunning = false;
 
         private BindingList<HoldStock> holdings;
         private BindingList<OrderStock> orders;
@@ -150,6 +151,8 @@ namespace FourCommaTrader
             comboConditionList.Enabled = false;
             comboAccount.Enabled = false;
             buttonStop.Enabled = true;
+
+            isRunning = true;
 
             // 조건 검색 및 매매 시작
             detectCondition();
@@ -407,6 +410,9 @@ namespace FourCommaTrader
 
         private void kiwoomApi_OnReceiveRealData(object sender, AxKHOpenAPILib._DKHOpenAPIEvents_OnReceiveRealDataEvent e)
         {
+            if (!isRunning) return;
+            if (DateTime.Now.Hour > 13) buttonStop.PerformClick();
+
             //Console.WriteLine("[DEBUG] OnReceiveRealData - e.sRealKey : " + e.sRealKey + ", e.sRealType : " + e.sRealType + ", e.sRealData : " + e.sRealData);
             // 보유 종목에 있을 경우 값 업데이트
             string market = kiwoomApi.GetCommRealData(e.sRealKey, 290).Trim();
@@ -437,43 +443,14 @@ namespace FourCommaTrader
                     long dayLowPrice = long.Parse(Regex.Replace(kiwoomApi.GetCommRealData(e.sRealKey, 18).Trim(), @"[^0-9]", ""));
                     holding.DayLowPrice = String.Format("{0:#,###0}", dayLowPrice);
 
-                    /*if (float.Parse(holding.ProfitRate) < -1)
-                    {
-                        Console.WriteLine("손절 " + holding.StockName + " " + holding.ProfitRate);
-                        order(ORDER_TYPE_SELL, holding.StockNo, int.Parse(holding.Qty, System.Globalization.NumberStyles.AllowThousands), 0, ORDER_HOGA_MARKET); // 시장가 손절
-                    }
-                    else if (float.Parse(holding.ProfitRate) > 1)
-                    {
-                        Console.WriteLine("익절 " + holding.StockName + " " + holding.ProfitRate);
-                        order(ORDER_TYPE_SELL, holding.StockNo, int.Parse(holding.Qty, System.Globalization.NumberStyles.AllowThousands), int.Parse(currentPrice.ToString()), ORDER_HOGA_LIIMIT); // 시장가 손절
-                    }*/
-
                     if (holding.isProfit)
-                    //if (holding.Ordered.Equals("대기") && holding.BuyCnt == 1 && long.Parse(holding.TargetLine, System.Globalization.NumberStyles.AllowThousands) > 0 && long.Parse(holding.TargetLine, System.Globalization.NumberStyles.AllowThousands) < currentPrice)
-                    //if (holding.Ordered.Equals("대기") && float.Parse(holding.ProfitRate) > 2.0)
                     {
                         log(LogMode.TRADE, holding.StockName + "(" + holding.StockNo + ") 종목이 익절가(" + holding.TargetLine + ")에 도달하여 익절 합니다. (매수가 : " + holding.BuyPrice + ", 매수 횟수 : " + holding.BuyCnt + ", 수익 : " + float.Parse(holding.ProfitRate) + "%)");
                         holding.Ordered = "주문";
-                        if (!order(ORDER_TYPE_SELL, holding.StockNo, int.Parse(holding.Qty, System.Globalization.NumberStyles.AllowThousands), int.Parse(currentPrice.ToString()), ORDER_HOGA_LIIMIT))
+                        if (!order(ORDER_TYPE_SELL, holding.StockNo, int.Parse(holding.Qty, System.Globalization.NumberStyles.AllowThousands), int.Parse(currentPrice.ToString()), ORDER_HOGA_MARKET))
                         {
                             holding.Ordered = "대기";
                         }
-                    /*} else if (holding.Ordered.Equals("대기") && holding.BuyCnt == 2 && long.Parse(holding.FirstBuyPrice, System.Globalization.NumberStyles.AllowThousands) > 0 && long.Parse(holding.FirstBuyPrice, System.Globalization.NumberStyles.AllowThousands) < currentPrice) 
-                    {
-                        log(LogMode.TRADE, holding.StockName + "(" + holding.StockNo + ") 종목이 2차 매수 익절가(1차 매수가)에 도달하여 익절 합니다. (" + float.Parse(holding.ProfitRate) + "%)");
-                        holding.Ordered = "주문";
-                        if (!order(ORDER_TYPE_SELL, holding.StockNo, int.Parse(holding.Qty, System.Globalization.NumberStyles.AllowThousands), int.Parse(currentPrice.ToString()), ORDER_HOGA_LIIMIT))
-                        {
-                            holding.Ordered = "대기";
-                        }
-                    } else if (holding.Ordered.Equals("대기") && holding.BuyCnt == 3 && long.Parse(holding.MiddleLine, System.Globalization.NumberStyles.AllowThousands) > 0 && long.Parse(holding.MiddleLine, System.Globalization.NumberStyles.AllowThousands) < currentPrice)
-                    {
-                        log(LogMode.TRADE, holding.StockName + "(" + holding.StockNo + ") 종목이 3차 매수 익절가(미들선)에 도달하여 익절 합니다. (" + float.Parse(holding.ProfitRate) + "%)");
-                        holding.Ordered = "주문";
-                        if (!order(ORDER_TYPE_SELL, holding.StockNo, int.Parse(holding.Qty, System.Globalization.NumberStyles.AllowThousands), int.Parse(currentPrice.ToString()), ORDER_HOGA_LIIMIT))
-                        {
-                            holding.Ordered = "대기";
-                        }*/
                     } else if (holding.Ordered.Equals("대기") && long.Parse(holding.SecondBuyPrice, System.Globalization.NumberStyles.AllowThousands) > currentPrice && holding.BuyCnt == 1)
                     {
                         // 2차 매수가 주문
@@ -495,14 +472,6 @@ namespace FourCommaTrader
                             holding.Ordered = "대기";
                             holding.BuyCnt = holding.BuyCnt - 1;
                         }
-                    } else if(!holding.Ordered.Equals("손절") && holding.BuyCnt >= 3 && float.Parse(holding.ProfitRate) < -10)
-                    {
-                        holding.Ordered = "손절";
-                        log(LogMode.TRADE, holding.StockName + "(" + holding.StockNo + ") 종목이 손절가에 도달하여 손절 합니다. (" + float.Parse(holding.ProfitRate) + "%)");
-                        if(!order(ORDER_TYPE_SELL, holding.StockNo, int.Parse(holding.Qty, System.Globalization.NumberStyles.AllowThousands), 0, ORDER_HOGA_MARKET))
-                        {
-                            holding.Ordered = "대기";
-                        }
                     }
                 }
 
@@ -511,7 +480,7 @@ namespace FourCommaTrader
                 {
                     long currentPrice = long.Parse(Regex.Replace(kiwoomApi.GetCommRealData(e.sRealKey, 10).Trim(), @"[^0-9]", ""));
                     conditionStock.CurrentPrice = String.Format("{0:#,###0}", currentPrice);
-
+                    conditionStock.NewTransferPrice = String.Format("{0:#,###0}", currentPrice);
                     long dayHighPrice = long.Parse(Regex.Replace(kiwoomApi.GetCommRealData(e.sRealKey, 17).Trim(), @"[^0-9]", ""));
                     conditionStock.DayHighPrice = String.Format("{0:#,###0}", dayHighPrice);
                     long dayLowPrice = long.Parse(Regex.Replace(kiwoomApi.GetCommRealData(e.sRealKey, 18).Trim(), @"[^0-9]", ""));
@@ -528,6 +497,11 @@ namespace FourCommaTrader
                     // 1차 매수가에 도달하면 매수 -> 1차 매수 도달 시 매수 대기했다가 돌파하면 매수하는 방식은?
                     if (currentPrice < oneTimeAmount && conditionStock.Ordered.Equals("대기") && long.Parse(conditionStock.TargetPrice, System.Globalization.NumberStyles.AllowThousands) > 0 && long.Parse(conditionStock.TargetPrice, System.Globalization.NumberStyles.AllowThousands) > currentPrice && long.Parse(conditionStock.TargetPrice, System.Globalization.NumberStyles.AllowThousands) < long.Parse(conditionStock.TransferPrice, System.Globalization.NumberStyles.AllowThousands))
                     {
+                        if (long.Parse(conditionStock.TransferPrice, System.Globalization.NumberStyles.AllowThousands) > long.Parse(conditionStock.NewTransferPrice, System.Globalization.NumberStyles.AllowThousands))
+                        {
+                            return;
+                        }
+
                         log(LogMode.TRADE, conditionStock.StockName + "(" + conditionStock.StockNo + ")의 1차 매수가에 도달하여 매수 합니다. (1차 매수가 : " + conditionStock.TargetPrice + ", 진입횟수 : " + conditionStock.TransferCnt + ")");
                         conditionStock.Ordered = "주문";
                         if (!order(ORDER_TYPE_BUY, conditionStock.StockNo, (oneTimeAmount / int.Parse(currentPrice.ToString())), int.Parse(currentPrice.ToString()), ORDER_HOGA_LIIMIT))
@@ -535,19 +509,6 @@ namespace FourCommaTrader
                             conditionStock.Ordered = "대기";
                         }
                     }
-                    /*if (currentPrice < oneTimeAmount && conditionStock.Ordered.Equals("대기") && long.Parse(conditionStock.TargetPrice, System.Globalization.NumberStyles.AllowThousands) > 0 && long.Parse(conditionStock.TargetPrice, System.Globalization.NumberStyles.AllowThousands) > currentPrice && long.Parse(conditionStock.TargetPrice, System.Globalization.NumberStyles.AllowThousands) < long.Parse(conditionStock.TransferPrice, System.Globalization.NumberStyles.AllowThousands))
-                    {
-                        log(LogMode.TRADE, conditionStock.StockName + "(" + conditionStock.StockNo + ")의 1차 매수가에 도달하여 매수 대기 합니다. (1차 매수가 : " + conditionStock.TargetPrice + ", 진입횟수 : " + conditionStock.TransferCnt + ")");
-                        conditionStock.Ordered = "진입";
-                    } else if (currentPrice < oneTimeAmount && conditionStock.Ordered.Equals("진입") && long.Parse(conditionStock.TargetPrice, System.Globalization.NumberStyles.AllowThousands) > 0 && long.Parse(conditionStock.TargetPrice, System.Globalization.NumberStyles.AllowThousands) < currentPrice && long.Parse(conditionStock.TargetPrice, System.Globalization.NumberStyles.AllowThousands) < long.Parse(conditionStock.TransferPrice, System.Globalization.NumberStyles.AllowThousands))
-                    {
-                        log(LogMode.TRADE, conditionStock.StockName + "(" + conditionStock.StockNo + ")의 1차 매수가에 도달하여 매수 합니다. (1차 매수가 : " + conditionStock.TargetPrice + ", 진입횟수 : " + conditionStock.TransferCnt + ")");
-                        conditionStock.Ordered = "주문";
-                        if (!order(ORDER_TYPE_BUY, conditionStock.StockNo, (oneTimeAmount / int.Parse(currentPrice.ToString())), int.Parse(currentPrice.ToString()), ORDER_HOGA_LIIMIT))
-                        {
-                            conditionStock.Ordered = "대기";
-                        }
-                    }*/
                 }
             }
         }
@@ -563,13 +524,14 @@ namespace FourCommaTrader
 
                 if (conditionStock != null)
                 {
-                    conditionStock.Status = "편입";
+                    conditionStock.Status = "재편입";
+                    conditionStock.NewTransferPrice = null;
                     conditionStock.upTransferCnt();
                     conditionStock.DetectionTime = DateTime.Now.ToString("HHmmss");
                 }
                 else
                 {
-                    conditionStocks.Add(new DetectionStock(e.sTrCode, kiwoomApi.GetMasterCodeName(e.sTrCode)));
+                    conditionStocks.Add(new DetectionStock(e.sTrCode, kiwoomApi.GetMasterCodeName(e.sTrCode), maxStock >= holdings.Count));
                     requestRealtimeQuote(SCREEN_NO_CONDITION, e.sTrCode, conditionStocks.Count > 0 ? REALTIME_ADD : REALTIME_NEW);
                 }
 
@@ -877,6 +839,8 @@ namespace FourCommaTrader
             buttonStop.Enabled = false;
             comboConditionList.Enabled = true;
             comboAccount.Enabled = true;
+
+            isRunning = false;
         }
 
         private void buttonSaveLog_Click(object sender, EventArgs e)
