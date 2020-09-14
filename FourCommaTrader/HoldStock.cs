@@ -97,6 +97,19 @@ namespace FourCommaTrader
             }
         }
 
+        public bool isProfit
+        {
+            get
+            {
+                if(_ordered.Equals("대기") && _targetLine > 0 && _targetLine < _currentPrice)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
         // 수익선
         private double _targetLine;
         public string TargetLine
@@ -267,6 +280,7 @@ namespace FourCommaTrader
             _totalBuyPrice = totalBuyPrice;
             _serverGubun = serverGubun;
             _buyCnt = 1;
+            _ordered = "대기";
         }
 
         public HoldStock(string stockNo, string stockName, long currentPrice, int qty, long buyPrice, long totalBuyPrice, long profit, float profitRate, int serverGubun)
@@ -281,6 +295,7 @@ namespace FourCommaTrader
             _profitRate = profitRate;
             _serverGubun = serverGubun;
             _buyCnt = 1;
+            _ordered = "대기";
         }
 
         public HoldStock(string stockNo, string stockName, long currentPrice, int qty, long buyPrice, long totalBuyPrice, long profit, float profitRate, int serverGubun, int buyCnt)
@@ -295,6 +310,7 @@ namespace FourCommaTrader
             _profitRate = profitRate;
             _serverGubun = serverGubun;
             _buyCnt = buyCnt;
+            _ordered = "대기";
         }
 
         private void NotifyPropertyChanged(string name)

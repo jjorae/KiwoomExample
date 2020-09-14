@@ -117,6 +117,7 @@ namespace FourCommaTrader
             {
                 _status = value;
                 this.NotifyPropertyChanged("Status");
+                this.NotifyPropertyChanged("TransferCnt");
             }
         }
 
@@ -134,16 +135,35 @@ namespace FourCommaTrader
         }
 
         // 주문여부
-        private bool _ordered;
+        private string _ordered;
 
         public string Ordered
         {
-            get { return _ordered?"주문":"대기"; }
+            get { return _ordered; }
             set
             {
-                _ordered = value.Equals("주문")?true:false;
+                _ordered = value;
                 this.NotifyPropertyChanged("Ordered");
             }
+        }
+
+        private string _detectionTime;
+
+        public string DetectionTime
+        {
+            get { return _detectionTime; }
+            set
+            {
+                _detectionTime = value;
+                this.NotifyPropertyChanged("DetectionTime");
+            }
+        }
+
+        private int _afterDetection;
+
+        public int AfterDetection
+        {
+            get { return Convert.ToInt32(((DateTime.Now - DateTime.ParseExact(_detectionTime, "HHmmss", null)).TotalSeconds)); }
         }
 
         public void upTransferCnt()
@@ -159,6 +179,8 @@ namespace FourCommaTrader
             _stockName = stockName;
             _status = "편입";
             _transferCnt = 1;
+            _ordered = "대기";
+            _detectionTime = DateTime.Now.ToString("HHmmss");
         }
 
         public DetectionStock(string stockNo, string stockName, long currentPrice, float fluctuationRate)
@@ -169,6 +191,8 @@ namespace FourCommaTrader
             _fluctuationRate = fluctuationRate;
             _status = "편입";
             _transferCnt = 1;
+            _ordered = "대기";
+            _detectionTime = DateTime.Now.ToString("HHmmss");
         }
 
         public DetectionStock(string stockNo, string stockName, long currentPrice, float fluctuationRate, string status, int transferCnt)
@@ -179,6 +203,8 @@ namespace FourCommaTrader
             _fluctuationRate = fluctuationRate;
             _status = status;
             _transferCnt = transferCnt;
+            _ordered = "대기";
+            _detectionTime = DateTime.Now.ToString("HHmmss");
         }
 
         public DetectionStock(string stockNo, string stockName, long transferPrice, long currentPrice, float fluctuationRate, string status, int transferCnt)
@@ -190,6 +216,8 @@ namespace FourCommaTrader
             _fluctuationRate = fluctuationRate;
             _status = status;
             _transferCnt = transferCnt;
+            _ordered = "대기";
+            _detectionTime = DateTime.Now.ToString("HHmmss");
         }
 
         private void NotifyPropertyChanged(string name)
