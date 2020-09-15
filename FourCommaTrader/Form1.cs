@@ -480,7 +480,7 @@ namespace FourCommaTrader
                 {
                     long currentPrice = long.Parse(Regex.Replace(kiwoomApi.GetCommRealData(e.sRealKey, 10).Trim(), @"[^0-9]", ""));
                     conditionStock.CurrentPrice = String.Format("{0:#,###0}", currentPrice);
-                    conditionStock.NewTransferPrice = String.Format("{0:#,###0}", currentPrice);
+                    //conditionStock.NewTransferPrice = String.Format("{0:#,###0}", currentPrice);
                     long dayHighPrice = long.Parse(Regex.Replace(kiwoomApi.GetCommRealData(e.sRealKey, 17).Trim(), @"[^0-9]", ""));
                     conditionStock.DayHighPrice = String.Format("{0:#,###0}", dayHighPrice);
                     long dayLowPrice = long.Parse(Regex.Replace(kiwoomApi.GetCommRealData(e.sRealKey, 18).Trim(), @"[^0-9]", ""));
@@ -495,12 +495,12 @@ namespace FourCommaTrader
                     conditionStock.FluctuationRate = String.Format("{0:f2}", fluctuationRate);
 
                     // 1차 매수가에 도달하면 매수 -> 1차 매수 도달 시 매수 대기했다가 돌파하면 매수하는 방식은?
-                    if (currentPrice < oneTimeAmount && conditionStock.Ordered.Equals("대기") && long.Parse(conditionStock.TargetPrice, System.Globalization.NumberStyles.AllowThousands) > 0 && long.Parse(conditionStock.TargetPrice, System.Globalization.NumberStyles.AllowThousands) > currentPrice && long.Parse(conditionStock.TargetPrice, System.Globalization.NumberStyles.AllowThousands) < long.Parse(conditionStock.TransferPrice, System.Globalization.NumberStyles.AllowThousands))
+                    if (currentPrice < oneTimeAmount && !conditionStock.Status.Equals("이탈") && conditionStock.Ordered.Equals("대기") && long.Parse(conditionStock.TargetPrice, System.Globalization.NumberStyles.AllowThousands) > 0 && long.Parse(conditionStock.TargetPrice, System.Globalization.NumberStyles.AllowThousands) > currentPrice && long.Parse(conditionStock.TargetPrice, System.Globalization.NumberStyles.AllowThousands) < long.Parse(conditionStock.TransferPrice, System.Globalization.NumberStyles.AllowThousands))
                     {
-                        if (long.Parse(conditionStock.TransferPrice, System.Globalization.NumberStyles.AllowThousands) > long.Parse(conditionStock.NewTransferPrice, System.Globalization.NumberStyles.AllowThousands))
+                        /*if (long.Parse(conditionStock.TransferPrice, System.Globalization.NumberStyles.AllowThousands) > long.Parse(conditionStock.NewTransferPrice, System.Globalization.NumberStyles.AllowThousands))
                         {
                             return;
-                        }
+                        }*/
 
                         log(LogMode.TRADE, conditionStock.StockName + "(" + conditionStock.StockNo + ")의 1차 매수가에 도달하여 매수 합니다. (1차 매수가 : " + conditionStock.TargetPrice + ", 진입횟수 : " + conditionStock.TransferCnt + ")");
                         conditionStock.Ordered = "주문";
@@ -524,8 +524,10 @@ namespace FourCommaTrader
 
                 if (conditionStock != null)
                 {
-                    conditionStock.Status = "재편입";
-                    conditionStock.NewTransferPrice = null;
+                    //conditionStock.Status = "재편입";
+                    //conditionStock.NewTransferPrice = null;
+                    conditionStock.Status = "편입";
+                    conditionStock.TransferPrice = null;
                     conditionStock.upTransferCnt();
                     conditionStock.DetectionTime = DateTime.Now.ToString("HHmmss");
                 }
@@ -547,6 +549,7 @@ namespace FourCommaTrader
                 if (conditionStock != null)
                 {
                     conditionStock.Status = "이탈";
+                    conditionStock.TransferPrice = null;
                     //removeRealtimeQuote(SCREEN_NO_CONDITION, e.sTrCode);
                 }
             }
