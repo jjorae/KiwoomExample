@@ -152,6 +152,9 @@ namespace FourCommaTrader
             comboAccount.Enabled = false;
             buttonStop.Enabled = true;
 
+            this.oneTimeAmount = int.Parse(maxPrice.Value.ToString());
+            this.maxStock = int.Parse(maxStockCnt.Value.ToString());
+
             isRunning = true;
 
             // 조건 검색 및 매매 시작
@@ -451,27 +454,38 @@ namespace FourCommaTrader
                         {
                             holding.Ordered = "대기";
                         }
-                    } else if (holding.Ordered.Equals("대기") && long.Parse(holding.SecondBuyPrice, System.Globalization.NumberStyles.AllowThousands) > currentPrice && holding.BuyCnt == 1)
+                    }
+                    else if (holding.Ordered.Equals("대기") && long.Parse(holding.SecondBuyPrice, System.Globalization.NumberStyles.AllowThousands) > currentPrice && holding.BuyCnt == 1)
                     {
-                        // 2차 매수가 주문
+                        // 2차 매수가에 도달하면 손절
+                        log(LogMode.TRADE, holding.StockName + "(" + holding.StockNo + ") 종목이 손절가(" + holding.SecondBuyPrice + ")에 도달하여 손절 합니다. (매수가 : " + holding.BuyPrice + ", 손익 : " + float.Parse(holding.ProfitRate) + "%)");
                         holding.Ordered = "주문";
-                        holding.BuyCnt = holding.BuyCnt + 1;
-                        log(LogMode.TRADE, holding.StockName + "(" + holding.StockNo + ") 종목이 2차 매수가에 도달하여 주문 합니다. (" + holding.CurrentPrice + "원)");
-                        if(!order(ORDER_TYPE_BUY, holding.StockNo, (oneTimeAmount / int.Parse(currentPrice.ToString())), int.Parse(currentPrice.ToString()), ORDER_HOGA_LIIMIT))
-                        {
-                            holding.BuyCnt = holding.BuyCnt - 1;
-                        }
-                    } else if (holding.Ordered.Equals("대기") && long.Parse(holding.ThirdBuyPrice, System.Globalization.NumberStyles.AllowThousands) > currentPrice && holding.BuyCnt == 2)
-                    {
-                        // 3차 매수가 주문. 기본 2배 물량
-                        holding.Ordered = "주문";
-                        holding.BuyCnt = holding.BuyCnt + 1;
-                        log(LogMode.TRADE, holding.StockName + "(" + holding.StockNo + ") 종목이 3차 매수가에 도달하여 주문 합니다. (" + holding.CurrentPrice + "원)");
-                        if(!order(ORDER_TYPE_BUY, holding.StockNo, (oneTimeAmount / int.Parse(currentPrice.ToString())) * 2, int.Parse(currentPrice.ToString()), ORDER_HOGA_LIIMIT))
+                        if (!order(ORDER_TYPE_SELL, holding.StockNo, int.Parse(holding.Qty, System.Globalization.NumberStyles.AllowThousands), int.Parse(currentPrice.ToString()), ORDER_HOGA_MARKET))
                         {
                             holding.Ordered = "대기";
-                            holding.BuyCnt = holding.BuyCnt - 1;
                         }
+
+                        /*} else if (holding.Ordered.Equals("대기") && long.Parse(holding.SecondBuyPrice, System.Globalization.NumberStyles.AllowThousands) > currentPrice && holding.BuyCnt == 1)
+                        {
+                            // 2차 매수가 주문
+                            holding.Ordered = "주문";
+                            holding.BuyCnt = holding.BuyCnt + 1;
+                            log(LogMode.TRADE, holding.StockName + "(" + holding.StockNo + ") 종목이 2차 매수가에 도달하여 주문 합니다. (" + holding.CurrentPrice + "원)");
+                            if(!order(ORDER_TYPE_BUY, holding.StockNo, (oneTimeAmount / int.Parse(currentPrice.ToString())), int.Parse(currentPrice.ToString()), ORDER_HOGA_LIIMIT))
+                            {
+                                holding.BuyCnt = holding.BuyCnt - 1;
+                            }
+                        } else if (holding.Ordered.Equals("대기") && long.Parse(holding.ThirdBuyPrice, System.Globalization.NumberStyles.AllowThousands) > currentPrice && holding.BuyCnt == 2)
+                        {
+                            // 3차 매수가 주문. 기본 2배 물량
+                            holding.Ordered = "주문";
+                            holding.BuyCnt = holding.BuyCnt + 1;
+                            log(LogMode.TRADE, holding.StockName + "(" + holding.StockNo + ") 종목이 3차 매수가에 도달하여 주문 합니다. (" + holding.CurrentPrice + "원)");
+                            if(!order(ORDER_TYPE_BUY, holding.StockNo, (oneTimeAmount / int.Parse(currentPrice.ToString())) * 2, int.Parse(currentPrice.ToString()), ORDER_HOGA_LIIMIT))
+                            {
+                                holding.Ordered = "대기";
+                                holding.BuyCnt = holding.BuyCnt - 1;
+                            }*/
                     }
                 }
 
@@ -504,7 +518,9 @@ namespace FourCommaTrader
 
                         log(LogMode.TRADE, conditionStock.StockName + "(" + conditionStock.StockNo + ")의 1차 매수가에 도달하여 매수 합니다. (1차 매수가 : " + conditionStock.TargetPrice + ", 진입횟수 : " + conditionStock.TransferCnt + ")");
                         conditionStock.Ordered = "주문";
-                        if (!order(ORDER_TYPE_BUY, conditionStock.StockNo, (oneTimeAmount / int.Parse(currentPrice.ToString())), int.Parse(currentPrice.ToString()), ORDER_HOGA_LIIMIT))
+                        //if (!order(ORDER_TYPE_BUY, conditionStock.StockNo, (oneTimeAmount / int.Parse(currentPrice.ToString())), int.Parse(currentPrice.ToString()), ORDER_HOGA_LIIMIT))
+                        // 시장가로 매수
+                        if (!order(ORDER_TYPE_BUY, conditionStock.StockNo, (oneTimeAmount / int.Parse(currentPrice.ToString())), 0, ORDER_HOGA_MARKET))
                         {
                             conditionStock.Ordered = "대기";
                         }
@@ -1104,6 +1120,12 @@ namespace FourCommaTrader
             }
 
             return result;
+        }
+
+        private void label5_Click(object sender, EventArgs e)
+        {
+            // 추정 예탁 자산 새로고침
+            requestTrAccountEvaluationStatus();
         }
     }
 }
